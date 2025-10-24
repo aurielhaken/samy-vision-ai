@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Upload, Sparkles, Save, History, Palette } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, Sparkles, Save, History, Palette, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -11,14 +11,10 @@ import MemoryList from "@/components/MemoryList";
 import PromptTemplateSelector from "@/components/PromptTemplateSelector";
 import FormatSelector from "@/components/FormatSelector";
 import QuickActions from "@/components/QuickActions";
+import MemoryStats from "@/components/MemoryStats";
+import MemoryExport from "@/components/MemoryExport";
 import { type PromptTemplate } from "@/lib/promptTemplates";
-
-interface MemoryItem {
-  id: string;
-  content: string;
-  timestamp: string;
-  prompt: string;
-}
+import { useMemoryManager } from "@/hooks/useMemoryManager";
 
 const Index = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -26,10 +22,25 @@ const Index = () => {
   const [prompt, setPrompt] = useState("");
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<'text' | 'json' | 'vision_ok'>('text');
   const { toast } = useToast();
+  
+  // Memory management
+  const {
+    entries: memories,
+    isLoading: isLoadingMemory,
+    loadEntries,
+    addEntry,
+    deleteEntry,
+    getStatistics,
+    downloadExport
+  } = useMemoryManager();
+
+  // Load memories on mount
+  useEffect(() => {
+    loadEntries();
+  }, [loadEntries]);
 
   const handleTemplateSelect = (template: PromptTemplate) => {
     setSelectedTemplate(template.id);
@@ -146,7 +157,7 @@ const Index = () => {
     }
   };
 
-  const handleSaveMemory = () => {
+  const handleSaveMemory = async () => {
     if (!analysisResult) {
       toast({
         variant: "destructive",
@@ -156,26 +167,49 @@ const Index = () => {
       return;
     }
 
-    const newMemory: MemoryItem = {
-      id: Date.now().toString(),
-      content: analysisResult,
-      timestamp: new Date().toLocaleString('fr-FR'),
+    const result = await addEntry(analysisResult, 'analysis', {
       prompt: prompt || "Décris cette image en détail",
-    };
-
-    setMemories(prev => [newMemory, ...prev].slice(0, 5));
-    
-    toast({
-      title: "Sauvegardé",
-      description: "L'analyse a été ajoutée à la mémoire",
+      format: selectedFormat,
+      template: selectedTemplate,
+      imageName: selectedImage?.name || 'unknown'
     });
+
+    if (result.success) {
+      toast({
+        title: "Sauvegardé",
+        description: "L'analyse a été ajoutée à la mémoire",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erreur de sauvegarde",
+        description: result.error || "Impossible de sauvegarder l'analyse",
+      });
+    }
   };
 
-  const handleDeleteMemory = (id: string) => {
-    setMemories(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMemory = async (id: string) => {
+    const result = await deleteEntry(id);
+    
+    if (result.success) {
+      toast({
+        title: "Supprimé",
+        description: "L'entrée a été supprimée de la mémoire",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: result.error || "Impossible de supprimer l'entrée",
+      });
+    }
+  };
+
+  const handleExport = (format: 'json' | 'csv' | 'txt') => {
+    downloadExport(format);
     toast({
-      title: "Supprimé",
-      description: "L'entrée a été supprimée de la mémoire",
+      title: "Export réussi",
+      description: `La mémoire a été exportée au format ${format.toUpperCase()}`,
     });
   };
 
@@ -299,11 +333,20 @@ const Index = () => {
               <AnalysisResult result={analysisResult} isAnalyzing={isAnalyzing} />
             </Card>
 
+            {/* Memory Stats */}
+            <MemoryStats stats={getStatistics()} />
+
+            {/* Memory Export */}
+            <MemoryExport 
+              onExport={handleExport}
+              disabled={memories.length === 0}
+            />
+
             {/* Memory List */}
             <Card className="p-6 shadow-medium">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <History className="w-5 h-5 text-primary" />
-                Mémoire récente
+                Mémoire récente ({memories.length})
               </h2>
               <MemoryList memories={memories} onDelete={handleDeleteMemory} />
             </Card>

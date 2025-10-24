@@ -6,7 +6,8 @@ interface MemoryItem {
   id: string;
   content: string;
   timestamp: string;
-  prompt: string;
+  prompt?: string;
+  metadata?: Record<string, any>;
 }
 
 interface MemoryListProps {
@@ -37,9 +38,11 @@ const MemoryList = ({ memories, onDelete }: MemoryListProps) => {
                 <Clock className="w-3 h-3" />
                 <span>{memory.timestamp}</span>
               </div>
-              <p className="text-sm font-medium text-accent">
-                Prompt: {memory.prompt}
-              </p>
+              {memory.prompt && (
+                <p className="text-sm font-medium text-accent">
+                  Prompt: {memory.prompt}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground line-clamp-3">
                 {memory.content}
               </p>

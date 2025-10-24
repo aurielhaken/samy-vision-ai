@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { image, prompt } = await req.json();
+    const { image, prompt, format } = await req.json();
     
     if (!image) {
       return new Response(
@@ -32,7 +32,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Calling Samy Vision API...');
+    console.log('Calling Samy Vision API with format:', format || 'text');
     
     // Call the Samy Vision API
     const response = await fetch(`${SAMY_VISION_API_URL}/analyze`, {
@@ -44,6 +44,7 @@ serve(async (req) => {
       body: JSON.stringify({
         image: image,
         prompt: prompt || "Décris cette image en détail",
+        format: format || "text",
       }),
     });
 

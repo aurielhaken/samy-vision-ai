@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Sparkles, Save, History, X } from "lucide-react";
+import { Upload, Sparkles, Save, History, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import ImageUpload from "@/components/ImageUpload";
 import AnalysisResult from "@/components/AnalysisResult";
 import MemoryList from "@/components/MemoryList";
+import PromptTemplateSelector from "@/components/PromptTemplateSelector";
+import FormatSelector from "@/components/FormatSelector";
+import QuickActions from "@/components/QuickActions";
+import { type PromptTemplate } from "@/lib/promptTemplates";
 
 interface MemoryItem {
   id: string;
@@ -23,7 +27,28 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<'text' | 'json' | 'vision_ok'>('text');
   const { toast } = useToast();
+
+  const handleTemplateSelect = (template: PromptTemplate) => {
+    setSelectedTemplate(template.id);
+    setPrompt(template.prompt);
+    setSelectedFormat(template.format);
+    toast({
+      title: "Template sélectionné",
+      description: `${template.name} - ${template.description}`,
+    });
+  };
+
+  const handleQuickAction = (actionPrompt: string) => {
+    setPrompt(actionPrompt);
+    setSelectedTemplate(null);
+    toast({
+      title: "Action rapide",
+      description: "Prompt mis à jour",
+    });
+  };
 
   const handleImageSelect = (file: File) => {
     // Validation
@@ -84,11 +109,12 @@ const Index = () => {
     try {
       const base64Image = await convertImageToBase64(selectedImage);
       
-      // Call the Samy Vision API via edge function
+      // Call the Samy Vision API via edge function with format
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: {
           image: base64Image,
-          prompt: prompt || "Décris cette image en détail"
+          prompt: prompt || "Décris cette image en détail",
+          format: selectedFormat
         }
       });
 
@@ -193,15 +219,46 @@ const Index = () => {
               />
             </Card>
 
+            {/* Templates & Format Selection */}
+            <Card className="p-6 shadow-medium">
+              <div className="flex items-center gap-2 mb-4">
+                <Palette className="w-5 h-5 text-accent" />
+                <h2 className="text-xl font-semibold">Templates & Format</h2>
+              </div>
+              
+              <div className="space-y-6">
+                <PromptTemplateSelector
+                  selectedTemplate={selectedTemplate}
+                  onSelectTemplate={handleTemplateSelect}
+                />
+                
+                <FormatSelector
+                  selectedFormat={selectedFormat}
+                  onSelectFormat={setSelectedFormat}
+                />
+
+                <QuickActions
+                  onSelectAction={handleQuickAction}
+                  disabled={isAnalyzing}
+                />
+              </div>
+            </Card>
+
             {/* Prompt Input */}
             <Card className="p-6 shadow-medium">
               <h2 className="text-xl font-semibold mb-4">Prompt personnalisé</h2>
               <Textarea
                 placeholder="Décris cette image en détail"
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setSelectedTemplate(null);
+                }}
                 className="min-h-[100px] resize-none"
               />
+              <p className="text-xs text-muted-foreground mt-2">
+                {selectedTemplate ? "Template actif - Modifiez pour personnaliser" : "Entrez votre prompt personnalisé"}
+              </p>
             </Card>
 
             {/* Action Buttons */}

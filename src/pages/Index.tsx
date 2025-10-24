@@ -120,29 +120,95 @@ const Index = () => {
     try {
       const base64Image = await convertImageToBase64(selectedImage);
       
-      // Call the Samy Vision API via edge function with format
-      const { data, error } = await supabase.functions.invoke('analyze-image', {
-        body: {
+      // Streaming analysis avec Lovable AI
+      const ANALYZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-image`;
+      
+      const response = await fetch(ANALYZE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
           image: base64Image,
           prompt: prompt || "Décris cette image en détail",
-          format: selectedFormat
-        }
+          format: selectedFormat,
+          stream: true
+        }),
       });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error("Limite de taux atteinte. Réessayez dans quelques instants.");
+        }
+        if (response.status === 402) {
+          throw new Error("Crédits insuffisants. Ajoutez des crédits à votre workspace.");
+        }
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.body) {
+        throw new Error("Pas de réponse du serveur");
       }
 
-      // Extract the analysis result from the API response
-      const result = data.analysis || data.result || JSON.stringify(data, null, 2);
-      setAnalysisResult(result);
+      // Lire le flux SSE token par token
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullResult = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullResult += content;
+              setAnalysisResult(fullResult);
+            }
+          } catch {
+            buffer = line + '\n' + buffer;
+            break;
+          }
+        }
+      }
+
+      // Flush final buffer
+      if (buffer.trim()) {
+        for (let raw of buffer.split('\n')) {
+          if (!raw || raw.startsWith(':')) continue;
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullResult += content;
+              setAnalysisResult(fullResult);
+            }
+          } catch { /* ignore */ }
+        }
+      }
       
       toast({
-        title: "Analyse terminée",
+        title: "✨ Analyse terminée",
         description: "L'image a été analysée avec succès",
       });
     } catch (error) {
@@ -152,6 +218,7 @@ const Index = () => {
         title: "Erreur d'analyse",
         description: error instanceof Error ? error.message : "Une erreur est survenue",
       });
+      setAnalysisResult("");
     } finally {
       setIsAnalyzing(false);
     }
@@ -300,17 +367,20 @@ const Index = () => {
               <Button
                 onClick={handleAnalyze}
                 disabled={!selectedImage || isAnalyzing}
-                className="flex-1 min-h-[44px] h-12 text-base sm:text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-smooth shadow-medium"
+                className="flex-1 min-h-[44px] h-12 text-base sm:text-lg font-bold bg-gradient-primary hover:opacity-90 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-large relative overflow-hidden group"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 {isAnalyzing ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent mr-2" />
-                    Analyse en cours...
+                    <div className="relative flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent mr-2" />
+                      <span className="animate-pulse">Analyse en cours...</span>
+                    </div>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Analyser l'image
+                    <Sparkles className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                    <span>Analyser l'image ⚡</span>
                   </>
                 )}
               </Button>

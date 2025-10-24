@@ -1,11 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface MemoryEntry {
   id: string;
   content: string;
   type: string;
   timestamp: string;
+  created_at: string;
   prompt?: string;
   metadata?: Record<string, any>;
 }
@@ -13,7 +15,7 @@ export interface MemoryEntry {
 export interface MemoryStats {
   total: number;
   byType: Record<string, number>;
-  byDate: Record<string, number>;
+  byDate?: Record<string, number>;
   recent: number;
 }
 
@@ -24,110 +26,141 @@ interface SearchOptions {
 }
 
 export const useMemoryManager = () => {
-  const [entries, setEntries] = useState<MemoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Load all entries
-  const loadEntries = useCallback(async (limit = 100, type?: string | null) => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: limit.toString() });
-      if (type) params.append('type', type);
-
+  // React Query pour le cache automatique et optimisation
+  const { data: entries = [], isLoading } = useQuery({
+    queryKey: ['memory-entries'],
+    queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('memory', {
         method: 'GET',
       });
-
       if (error) throw error;
-
+      
       const loadedEntries = (data.entries || []).map((entry: any) => ({
         id: entry.id,
         content: entry.content,
         type: entry.type,
         timestamp: entry.created_at,
+        created_at: entry.created_at,
         prompt: entry.metadata?.prompt,
         metadata: entry.metadata,
       }));
+      
+      return loadedEntries as MemoryEntry[];
+    },
+    staleTime: 30000, // Cache pendant 30 secondes
+    gcTime: 300000, // Garde en mémoire 5 minutes
+  });
 
-      setEntries(loadedEntries);
-      return loadedEntries;
-    } catch (error) {
-      console.error('Error loading entries:', error);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadEntries = useCallback(async () => {
+    queryClient.invalidateQueries({ queryKey: ['memory-entries'] });
+  }, [queryClient]);
 
-  // Add entry
+  // Mutation optimiste pour l'ajout
+  const addMutation = useMutation({
+    mutationFn: async ({ content, type, metadata }: { 
+      content: string; 
+      type: string; 
+      metadata: Record<string, any> 
+    }) => {
+      const { data, error } = await supabase.functions.invoke('memory', {
+        method: 'POST',
+        body: { content, type, metadata: { ...metadata, timestamp: new Date().toISOString(), version: '2.0' } },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.message);
+      return data;
+    },
+    onMutate: async (variables) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ['memory-entries'] });
+      const previousEntries = queryClient.getQueryData(['memory-entries']);
+      
+      queryClient.setQueryData(['memory-entries'], (old: MemoryEntry[] = []) => [
+        {
+          id: 'temp-' + Date.now(),
+          content: variables.content,
+          type: variables.type,
+          timestamp: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          metadata: variables.metadata,
+        },
+        ...old,
+      ]);
+      
+      return { previousEntries };
+    },
+    onError: (err, variables, context) => {
+      // Rollback sur erreur
+      if (context?.previousEntries) {
+        queryClient.setQueryData(['memory-entries'], context.previousEntries);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['memory-entries'] });
+    },
+  });
+
   const addEntry = useCallback(async (
     content: string,
-    type = 'analysis',
+    type: string = 'analysis',
     metadata: Record<string, any> = {}
-  ) => {
+  ): Promise<{ success: boolean; error?: string; id?: string }> => {
     try {
-      const { data, error } = await supabase.functions.invoke('memory', {
-        body: {
-          content,
-          type,
-          metadata: {
-            ...metadata,
-            timestamp: new Date().toISOString(),
-            version: '2.0'
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        const newEntry: MemoryEntry = {
-          id: data.id,
-          content,
-          type,
-          timestamp: new Date().toISOString(),
-          metadata
-        };
-        
-        setEntries(prev => [newEntry, ...prev]);
-        return { success: true, id: data.id };
-      }
-
-      throw new Error('Failed to add entry');
+      const result = await addMutation.mutateAsync({ content, type, metadata });
+      return { success: true, id: result.id };
     } catch (error) {
-      console.error('Error adding entry:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Erreur inconnue' 
       };
     }
-  }, []);
+  }, [addMutation]);
 
-  // Delete entry
-  const deleteEntry = useCallback(async (entryId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke(`memory/${entryId}`, {
+  // Mutation optimiste pour la suppression
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke(`memory/${id}`, {
         method: 'DELETE',
       });
-
       if (error) throw error;
-
-      if (data.success) {
-        setEntries(prev => prev.filter(entry => entry.id !== entryId));
-        return { success: true };
+      if (!data.success) throw new Error(data.message);
+      return data;
+    },
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['memory-entries'] });
+      const previousEntries = queryClient.getQueryData(['memory-entries']);
+      
+      queryClient.setQueryData(['memory-entries'], (old: MemoryEntry[] = []) =>
+        old.filter(entry => entry.id !== deletedId)
+      );
+      
+      return { previousEntries };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousEntries) {
+        queryClient.setQueryData(['memory-entries'], context.previousEntries);
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['memory-entries'] });
+    },
+  });
 
-      throw new Error('Failed to delete entry');
+  const deleteEntry = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      return { success: true };
     } catch (error) {
-      console.error('Error deleting entry:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Erreur inconnue' 
       };
     }
-  }, []);
+  }, [deleteMutation]);
 
-  // Search entries
+  // Search avec memoization
   const searchEntries = useCallback((
     query: string,
     options: SearchOptions = {}
@@ -157,37 +190,31 @@ export const useMemoryManager = () => {
     return filtered;
   }, [entries]);
 
-  // Get statistics
+  // Stats avec memoization
   const getStatistics = useCallback((): MemoryStats => {
-    const stats: MemoryStats = {
-      total: entries.length,
-      byType: {},
-      byDate: {},
-      recent: 0
-    };
+    return useMemo(() => {
+      const now = Date.now();
+      const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
 
-    const now = Date.now();
-    const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+      const stats: MemoryStats = {
+        total: entries.length,
+        recent: 0,
+        byType: {},
+      };
 
-    entries.forEach(entry => {
-      // By type
-      stats.byType[entry.type] = (stats.byType[entry.type] || 0) + 1;
+      entries.forEach((entry) => {
+        stats.byType[entry.type] = (stats.byType[entry.type] || 0) + 1;
+        const entryTime = new Date(entry.created_at).getTime();
+        if (entryTime > oneWeekAgo) {
+          stats.recent++;
+        }
+      });
 
-      // By date (month)
-      const date = new Date(entry.timestamp);
-      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      stats.byDate[monthKey] = (stats.byDate[monthKey] || 0) + 1;
-
-      // Recent (last week)
-      if (new Date(entry.timestamp).getTime() > oneWeekAgo) {
-        stats.recent++;
-      }
-    });
-
-    return stats;
+      return stats;
+    }, [entries]);
   }, [entries]);
 
-  // Export data
+  // Export avec memoization
   const exportData = useCallback((
     format: 'json' | 'csv' | 'txt' = 'json',
     options: {
@@ -199,7 +226,6 @@ export const useMemoryManager = () => {
     const { includeMetadata = true, dateRange = null, types = null } = options;
     let exportEntries = [...entries];
 
-    // Filter by date
     if (dateRange?.start && dateRange?.end) {
       exportEntries = exportEntries.filter(entry => {
         const entryDate = new Date(entry.timestamp);
@@ -207,7 +233,6 @@ export const useMemoryManager = () => {
       });
     }
 
-    // Filter by type
     if (types && Array.isArray(types)) {
       exportEntries = exportEntries.filter(entry => types.includes(entry.type));
     }
@@ -256,7 +281,6 @@ export const useMemoryManager = () => {
     }
   }, [entries, getStatistics]);
 
-  // Download export
   const downloadExport = useCallback((
     format: 'json' | 'csv' | 'txt' = 'json',
     options = {}

@@ -1,12 +1,245 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Upload, Sparkles, Save, History, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/ImageUpload";
+import AnalysisResult from "@/components/AnalysisResult";
+import MemoryList from "@/components/MemoryList";
+
+interface MemoryItem {
+  id: string;
+  content: string;
+  timestamp: string;
+  prompt: string;
+}
 
 const Index = () => {
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [prompt, setPrompt] = useState("");
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const { toast } = useToast();
+
+  const handleImageSelect = (file: File) => {
+    // Validation
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
+    if (file.size > maxSize) {
+      toast({
+        variant: "destructive",
+        title: "Image trop grande",
+        description: "L'image doit faire moins de 10MB",
+      });
+      return;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Format non supporté",
+        description: "Seuls PNG, JPG et JPEG sont acceptés",
+      });
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedImage) {
+      toast({
+        variant: "destructive",
+        title: "Aucune image",
+        description: "Veuillez sélectionner une image",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult("");
+
+    try {
+      const base64Image = await convertImageToBase64(selectedImage);
+      
+      // TODO: Replace with actual API call
+      // For now, simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockResult = `Analyse de l'image avec le prompt: "${prompt || 'Décris cette image en détail'}"\n\nCeci est une démonstration. Pour connecter votre API Samy Vision, configurez l'URL et la clé API dans les paramètres de Lovable Cloud.`;
+      
+      setAnalysisResult(mockResult);
+      
+      toast({
+        title: "Analyse terminée",
+        description: "L'image a été analysée avec succès",
+      });
+    } catch (error) {
+      console.error("Erreur d'analyse:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur d'analyse",
+        description: "Une erreur est survenue lors de l'analyse. Réessayez.",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSaveMemory = () => {
+    if (!analysisResult) {
+      toast({
+        variant: "destructive",
+        title: "Aucun résultat",
+        description: "Analysez d'abord une image avant de sauvegarder",
+      });
+      return;
+    }
+
+    const newMemory: MemoryItem = {
+      id: Date.now().toString(),
+      content: analysisResult,
+      timestamp: new Date().toLocaleString('fr-FR'),
+      prompt: prompt || "Décris cette image en détail",
+    };
+
+    setMemories(prev => [newMemory, ...prev].slice(0, 5));
+    
+    toast({
+      title: "Sauvegardé",
+      description: "L'analyse a été ajoutée à la mémoire",
+    });
+  };
+
+  const handleDeleteMemory = (id: string) => {
+    setMemories(prev => prev.filter(m => m.id !== id));
+    toast({
+      title: "Supprimé",
+      description: "L'entrée a été supprimée de la mémoire",
+    });
+  };
+
+  const handleClearImage = () => {
+    setSelectedImage(null);
+    setImagePreview("");
+    setAnalysisResult("");
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Header */}
+      <header className="border-b bg-card shadow-soft">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-primary">
+              <Sparkles className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Samy Vision
+            </h1>
+            <span className="text-muted-foreground">- Analyse d'images IA</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Left Column - Upload & Analysis */}
+          <div className="space-y-6 animate-fade-in">
+            {/* Image Upload */}
+            <Card className="p-6 shadow-medium">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Upload className="w-5 h-5 text-primary" />
+                Télécharger une image
+              </h2>
+              <ImageUpload
+                onImageSelect={handleImageSelect}
+                imagePreview={imagePreview}
+                onClear={handleClearImage}
+              />
+            </Card>
+
+            {/* Prompt Input */}
+            <Card className="p-6 shadow-medium">
+              <h2 className="text-xl font-semibold mb-4">Prompt personnalisé</h2>
+              <Textarea
+                placeholder="Décris cette image en détail"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="min-h-[100px] resize-none"
+              />
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={handleAnalyze}
+                disabled={!selectedImage || isAnalyzing}
+                className="flex-1 h-12 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-smooth shadow-medium"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent mr-2" />
+                    Analyse en cours...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Analyser l'image
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={handleSaveMemory}
+                disabled={!analysisResult}
+                variant="outline"
+                className="h-12"
+              >
+                <Save className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Right Column - Results & Memory */}
+          <div className="space-y-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            {/* Analysis Result */}
+            <Card className="p-6 shadow-medium">
+              <h2 className="text-xl font-semibold mb-4">Résultat de l'analyse</h2>
+              <AnalysisResult result={analysisResult} isAnalyzing={isAnalyzing} />
+            </Card>
+
+            {/* Memory List */}
+            <Card className="p-6 shadow-medium">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <History className="w-5 h-5 text-primary" />
+                Mémoire récente
+              </h2>
+              <MemoryList memories={memories} onDelete={handleDeleteMemory} />
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

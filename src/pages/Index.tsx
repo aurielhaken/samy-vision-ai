@@ -223,27 +223,27 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
       <header className="border-b bg-card shadow-soft">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-primary">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-primary">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Samy Vision
             </h1>
-            <span className="text-muted-foreground">- Analyse d'images IA</span>
+            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">- Analyse d'images IA</span>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-6">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Left Column - Upload & Analysis */}
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-4 sm:space-y-6 animate-fade-in">
             {/* Image Upload */}
-            <Card className="p-6 shadow-medium">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-primary" />
+            <Card className="p-4 sm:p-6 shadow-medium">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
+                <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 Télécharger une image
               </h2>
               <ImageUpload
@@ -254,13 +254,13 @@ const Index = () => {
             </Card>
 
             {/* Templates & Format Selection */}
-            <Card className="p-6 shadow-medium">
+            <Card className="p-4 sm:p-6 shadow-medium">
               <div className="flex items-center gap-2 mb-4">
-                <Palette className="w-5 h-5 text-accent" />
-                <h2 className="text-xl font-semibold">Templates & Format</h2>
+                <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+                <h2 className="text-lg sm:text-xl font-semibold">Templates & Format</h2>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <PromptTemplateSelector
                   selectedTemplate={selectedTemplate}
                   onSelectTemplate={handleTemplateSelect}
@@ -279,8 +279,8 @@ const Index = () => {
             </Card>
 
             {/* Prompt Input */}
-            <Card className="p-6 shadow-medium">
-              <h2 className="text-xl font-semibold mb-4">Prompt personnalisé</h2>
+            <Card className="p-4 sm:p-6 shadow-medium">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Prompt personnalisé</h2>
               <Textarea
                 placeholder="Décris cette image en détail"
                 value={prompt}
@@ -296,11 +296,11 @@ const Index = () => {
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <Button
                 onClick={handleAnalyze}
                 disabled={!selectedImage || isAnalyzing}
-                className="flex-1 h-12 text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-smooth shadow-medium"
+                className="flex-1 min-h-[44px] h-12 text-base sm:text-lg font-semibold bg-gradient-primary hover:opacity-90 transition-smooth shadow-medium"
               >
                 {isAnalyzing ? (
                   <>
@@ -318,7 +318,7 @@ const Index = () => {
                 onClick={handleSaveMemory}
                 disabled={!analysisResult}
                 variant="outline"
-                className="h-12"
+                className="h-12 min-h-[44px]"
               >
                 <Save className="w-5 h-5" />
               </Button>
@@ -326,10 +326,10 @@ const Index = () => {
           </div>
 
           {/* Right Column - Results & Memory */}
-          <div className="space-y-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          <div className="space-y-4 sm:space-y-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
             {/* Analysis Result */}
-            <Card className="p-6 shadow-medium">
-              <h2 className="text-xl font-semibold mb-4">Résultat de l'analyse</h2>
+            <Card className="p-4 sm:p-6 shadow-medium">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">Résultat de l'analyse</h2>
               <AnalysisResult result={analysisResult} isAnalyzing={isAnalyzing} />
             </Card>
 
@@ -343,9 +343,9 @@ const Index = () => {
             />
 
             {/* Memory List */}
-            <Card className="p-6 shadow-medium">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <History className="w-5 h-5 text-primary" />
+            <Card className="p-4 sm:p-6 shadow-medium">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
+                <History className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 Mémoire récente ({memories.length})
               </h2>
               <MemoryList memories={memories} onDelete={handleDeleteMemory} />

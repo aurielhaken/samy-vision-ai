@@ -11,12 +11,12 @@ const FormatSelector = ({ selectedFormat, onSelectFormat }: FormatSelectorProps)
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-muted-foreground">Format de réponse</h3>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {RESPONSE_FORMATS.map((format) => (
           <Card
             key={format.id}
             className={cn(
-              "p-3 cursor-pointer transition-all hover:shadow-medium border-2",
+              "p-3 cursor-pointer transition-all hover:shadow-medium border-2 min-h-[44px]",
               selectedFormat === format.id
                 ? "border-accent bg-accent text-accent-foreground shadow-medium"
                 : "border-border hover:border-accent/50"

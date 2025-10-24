@@ -15,10 +15,10 @@ const MemoryExport = ({ onExport, disabled }: MemoryExportProps) => {
         Exporter la mémoire
       </h3>
       
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Button
           variant="outline"
-          className="flex flex-col gap-2 h-auto py-4"
+          className="flex flex-col gap-2 h-auto py-4 min-h-[44px]"
           onClick={() => onExport('json')}
           disabled={disabled}
         >
@@ -28,7 +28,7 @@ const MemoryExport = ({ onExport, disabled }: MemoryExportProps) => {
         
         <Button
           variant="outline"
-          className="flex flex-col gap-2 h-auto py-4"
+          className="flex flex-col gap-2 h-auto py-4 min-h-[44px]"
           onClick={() => onExport('csv')}
           disabled={disabled}
         >
@@ -38,7 +38,7 @@ const MemoryExport = ({ onExport, disabled }: MemoryExportProps) => {
         
         <Button
           variant="outline"
-          className="flex flex-col gap-2 h-auto py-4"
+          className="flex flex-col gap-2 h-auto py-4 min-h-[44px]"
           onClick={() => onExport('txt')}
           disabled={disabled}
         >

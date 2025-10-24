@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import ImageUpload from "@/components/ImageUpload";
 import AnalysisResult from "@/components/AnalysisResult";
 import MemoryList from "@/components/MemoryList";
@@ -83,13 +84,25 @@ const Index = () => {
     try {
       const base64Image = await convertImageToBase64(selectedImage);
       
-      // TODO: Replace with actual API call
-      // For now, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResult = `Analyse de l'image avec le prompt: "${prompt || 'Décris cette image en détail'}"\n\nCeci est une démonstration. Pour connecter votre API Samy Vision, configurez l'URL et la clé API dans les paramètres de Lovable Cloud.`;
-      
-      setAnalysisResult(mockResult);
+      // Call the Samy Vision API via edge function
+      const { data, error } = await supabase.functions.invoke('analyze-image', {
+        body: {
+          image: base64Image,
+          prompt: prompt || "Décris cette image en détail"
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Extract the analysis result from the API response
+      const result = data.analysis || data.result || JSON.stringify(data, null, 2);
+      setAnalysisResult(result);
       
       toast({
         title: "Analyse terminée",
@@ -100,7 +113,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "Erreur d'analyse",
-        description: "Une erreur est survenue lors de l'analyse. Réessayez.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
       });
     } finally {
       setIsAnalyzing(false);

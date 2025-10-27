@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { HumanAvatar } from '@/components/HumanAvatar';
+import { SamyBridgeSelector } from '@/components/SamyBridgeSelector';
 import ImageUpload from "@/components/ImageUpload";
 import AnalysisResult from "@/components/AnalysisResult";
 import MemoryList from "@/components/MemoryList";
@@ -454,6 +455,9 @@ const Index = () => {
 
             {/* Memory Stats */}
             <MemoryStats stats={getStatistics()} />
+
+            {/* Samy Bridge Selector */}
+            <SamyBridgeSelector />
 
             {/* Memory Export */}
             <MemoryExport 

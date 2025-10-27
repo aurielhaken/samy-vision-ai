@@ -303,7 +303,6 @@ const Index = () => {
           camera={{ position: [0, 0, 5], fov: 50 }}
           gl={{ antialias: true, alpha: true }}
         >
-          <color attach="background" args={['transparent']} />
           
           <ambientLight intensity={0.3} />
           <pointLight position={[5, 5, 5]} intensity={0.5} />

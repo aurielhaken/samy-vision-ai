@@ -104,11 +104,40 @@ export const useSamyWebSocket = (url: string = 'ws://localhost:8080') => {
   }, [connect]);
   
   const sendMessage = useCallback((message: SamyMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('⚠️ WebSocket non connecté');
+    const wsOpen = wsRef.current?.readyState === WebSocket.OPEN;
+    if (wsOpen) {
+      wsRef.current!.send(JSON.stringify(message));
+      return;
     }
+
+    // Fallback local si non connecté: simuler l'effet côté UI
+    console.warn('⚠️ WebSocket non connecté - fallback local');
+    setState((prev) => {
+      if (message.type === 'speak') {
+        const intensity = message.intensity ?? 0.6;
+        const text = message.text ?? '';
+        // Démarre la parole
+        const next = {
+          ...prev,
+          isSpeaking: true,
+          intensity,
+          lastText: text,
+        } as SamyState;
+        // Arrêt après durée approximative
+        const duration = Math.max((text.length || 20) * 50, 1000);
+        setTimeout(() => {
+          setState((p) => ({ ...p, isSpeaking: false, intensity: 0 }));
+        }, duration);
+        return next;
+      }
+      if (message.type === 'emotion' && message.emotion) {
+        return { ...prev, emotion: message.emotion } as SamyState;
+      }
+      if (message.type === 'idle') {
+        return { ...prev, isSpeaking: false, intensity: 0 } as SamyState;
+      }
+      return prev;
+    });
   }, []);
   
   return { state, sendMessage };

@@ -106,8 +106,7 @@ export const SamyAvatar = ({ emotion, isSpeaking, intensity }: SamyAvatarProps) 
         />
       </Sphere>
 
-      {/* Oeil gauche */}
-      <Sphere ref={leftEyeRef} args={[0.15, 16, 16]} position={[-0.3, 0.2, 0.85]}>
+      <Sphere ref={leftEyeRef} args={[0.15, 16, 16]} position={[-0.3, 0.2, 1.05]}>
         <meshStandardMaterial
           color="#ffffff"
           emissive="#ffffff"
@@ -115,13 +114,11 @@ export const SamyAvatar = ({ emotion, isSpeaking, intensity }: SamyAvatarProps) 
         />
       </Sphere>
       
-      {/* Pupille gauche */}
-      <Sphere args={[0.08, 16, 16]} position={[-0.3, 0.2, 0.95]}>
+      <Sphere args={[0.08, 16, 16]} position={[-0.3, 0.2, 1.15]}>
         <meshStandardMaterial color="#000000" />
       </Sphere>
 
-      {/* Oeil droit */}
-      <Sphere ref={rightEyeRef} args={[0.15, 16, 16]} position={[0.3, 0.2, 0.85]}>
+      <Sphere ref={rightEyeRef} args={[0.15, 16, 16]} position={[0.3, 0.2, 1.05]}>
         <meshStandardMaterial
           color="#ffffff"
           emissive="#ffffff"
@@ -129,13 +126,11 @@ export const SamyAvatar = ({ emotion, isSpeaking, intensity }: SamyAvatarProps) 
         />
       </Sphere>
       
-      {/* Pupille droite */}
-      <Sphere args={[0.08, 16, 16]} position={[0.3, 0.2, 0.95]}>
+      <Sphere args={[0.08, 16, 16]} position={[0.3, 0.2, 1.15]}>
         <meshStandardMaterial color="#000000" />
       </Sphere>
 
-      {/* Sourcil gauche */}
-      <mesh ref={leftEyebrowRef} position={[-0.3, 0.65, 0.85]}>
+      <mesh ref={leftEyebrowRef} position={[-0.3, 0.65, 1.06]}>
         <boxGeometry args={[0.35, 0.08, 0.08]} />
         <meshStandardMaterial
           color="#000000"
@@ -144,8 +139,7 @@ export const SamyAvatar = ({ emotion, isSpeaking, intensity }: SamyAvatarProps) 
         />
       </mesh>
 
-      {/* Sourcil droit */}
-      <mesh ref={rightEyebrowRef} position={[0.3, 0.65, 0.85]}>
+      <mesh ref={rightEyebrowRef} position={[0.3, 0.65, 1.06]}>
         <boxGeometry args={[0.35, 0.08, 0.08]} />
         <meshStandardMaterial
           color="#000000"
@@ -154,8 +148,7 @@ export const SamyAvatar = ({ emotion, isSpeaking, intensity }: SamyAvatarProps) 
         />
       </mesh>
 
-      {/* Bouche */}
-      <mesh ref={mouthRef} position={[0, -0.3, 0.85]} rotation={[0, 0, 0]}>
+      <mesh ref={mouthRef} position={[0, -0.3, 1.08]} rotation={[0, 0, 0]}>
         <torusGeometry args={[0.3, 0.08, 8, 32, Math.PI]} />
         <meshStandardMaterial
           color="#000000"

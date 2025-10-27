@@ -5,10 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
-import { SamyAvatar } from '@/components/SamyAvatar';
-import { SamyParticles } from '@/components/SamyParticles';
+import { HumanAvatar } from '@/components/HumanAvatar';
 import ImageUpload from "@/components/ImageUpload";
 import AnalysisResult from "@/components/AnalysisResult";
 import MemoryList from "@/components/MemoryList";
@@ -236,6 +233,11 @@ const Index = () => {
         }
       } catch (ttsError) {
         console.error('TTS error:', ttsError);
+        toast({
+          variant: 'destructive',
+          title: 'Synthèse vocale indisponible',
+          description: 'Impossible de générer la voix. Vérifiez la clé ou réessayez.'
+        });
         setIsSamySpeaking(false);
         setTimeout(() => setSamyEmotion('calm'), 2000);
       }
@@ -322,34 +324,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle relative">
-      {/* Samy Avatar 3D - Floating */}
-      <div className="fixed bottom-4 right-4 w-64 h-64 z-50 pointer-events-none">
-        <Canvas
-          camera={{ position: [0, 0, 5], fov: 50 }}
-          gl={{ antialias: true, alpha: true }}
-        >
-          
-          <ambientLight intensity={0.3} />
-          <pointLight position={[5, 5, 5]} intensity={0.5} />
-          <pointLight position={[-5, -5, -5]} intensity={0.3} color="#4A90E2" />
-          
-          <Environment preset="night" />
-          
-          <SamyParticles />
-          
-          <SamyAvatar
-            emotion={samyEmotion}
-            isSpeaking={isSamySpeaking}
-            intensity={isSamySpeaking ? 0.8 : 0.3}
-          />
-          
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate={!isAnalyzing}
-            autoRotateSpeed={0.5}
-          />
-        </Canvas>
+      {/* Samy Avatar Humain - Floating */}
+      <div className="fixed bottom-4 right-4 w-48 h-56 z-50 pointer-events-none">
+        <HumanAvatar
+          emotion={samyEmotion}
+          isSpeaking={isSamySpeaking}
+          intensity={isSamySpeaking ? 0.8 : 0.3}
+        />
       </div>
       {/* Header */}
       <header className="border-b bg-card shadow-soft">

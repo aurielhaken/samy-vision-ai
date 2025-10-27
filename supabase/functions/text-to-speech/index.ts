@@ -51,9 +51,13 @@ serve(async (req) => {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    // Avoid stack overflow by building the binary string iteratively
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Audio = btoa(binary);
 
     console.log('Speech generated successfully');
 

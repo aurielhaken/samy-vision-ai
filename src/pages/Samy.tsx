@@ -1,15 +1,20 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import { SamyOrb } from '@/components/SamyOrb';
+import { SamyAvatar } from '@/components/SamyAvatar';
 import { SamyParticles } from '@/components/SamyParticles';
 import { useSamyWebSocket } from '@/hooks/useSamyWebSocket';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Wifi, WifiOff, Sparkles, Volume2 } from 'lucide-react';
+import React from 'react';
 
 const Samy = () => {
   const { state, sendMessage } = useSamyWebSocket();
+  const [useAvatar, setUseAvatar] = React.useState(true);
   
   const testSpeak = () => {
     sendMessage({
@@ -71,12 +76,20 @@ const Samy = () => {
           {/* Particules d'ambiance */}
           <SamyParticles />
           
-          {/* Samy Orb */}
-          <SamyOrb
-            emotion={state.emotion}
-            isSpeaking={state.isSpeaking}
-            intensity={state.intensity}
-          />
+          {/* Samy - Avatar ou Orb */}
+          {useAvatar ? (
+            <SamyAvatar
+              emotion={state.emotion}
+              isSpeaking={state.isSpeaking}
+              intensity={state.intensity}
+            />
+          ) : (
+            <SamyOrb
+              emotion={state.emotion}
+              isSpeaking={state.isSpeaking}
+              intensity={state.intensity}
+            />
+          )}
           
           {/* Contrôles */}
           <OrbitControls
@@ -94,6 +107,21 @@ const Samy = () => {
       <div className="absolute bottom-6 left-6 right-6 z-10">
         <Card className="max-w-2xl mx-auto p-6 bg-gray-900/80 backdrop-blur-lg border-gray-700">
           <div className="space-y-4">
+            {/* Toggle Avatar/Sphère */}
+            <div className="flex items-center justify-center gap-3 pb-4 border-b border-gray-700">
+              <Label htmlFor="avatar-mode" className="text-gray-400 text-sm">
+                Sphère
+              </Label>
+              <Switch
+                id="avatar-mode"
+                checked={useAvatar}
+                onCheckedChange={setUseAvatar}
+              />
+              <Label htmlFor="avatar-mode" className="text-gray-400 text-sm">
+                Avatar 3D
+              </Label>
+            </div>
+
             {/* État actuel */}
             {state.isSpeaking && (
               <div className="flex items-center gap-3 text-primary animate-pulse">

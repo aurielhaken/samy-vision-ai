@@ -14,13 +14,7 @@ import { Input } from '@/components/ui/input';
 import React from 'react';
 
 const Samy = () => {
-  const [wsUrl, setWsUrl] = React.useState<string>(() =>
-    localStorage.getItem('samy-ws-url') || 'ws://localhost:8081'
-  );
-  React.useEffect(() => {
-    localStorage.setItem('samy-ws-url', wsUrl);
-  }, [wsUrl]);
-  const { state, sendMessage } = useSamyWebSocket(wsUrl);
+  const { state, sendMessage } = useSamyWebSocket();
   const [useAvatar, setUseAvatar] = React.useState(true);
   
   const testSpeak = () => {
@@ -129,16 +123,6 @@ const Samy = () => {
               </Label>
             </div>
 
-            {/* Réglages connexion */}
-            <div className="flex items-center gap-3">
-              <Label htmlFor="ws-url" className="text-gray-400 text-sm">WebSocket</Label>
-              <Input id="ws-url" value={wsUrl} onChange={(e) => setWsUrl(e.target.value)} className="max-w-xs" />
-              <span className="text-xs text-gray-500">Ex: ws://localhost:8081</span>
-            </div>
-            {!state.connected && state.error && (
-              <p className="text-xs text-red-400">{state.error}</p>
-            )}
-
             {/* État actuel */}
             {state.isSpeaking && (
               <div className="flex items-center gap-3 text-primary animate-pulse">
@@ -181,8 +165,15 @@ const Samy = () => {
             
             {/* Instructions */}
             {!state.connected && (
-              <p className="text-sm text-gray-400">
-                💡 Lancez le serveur WebSocket avec <code className="px-2 py-1 bg-gray-800 rounded">node samy-bridge.js</code>
+              <div className="text-sm text-gray-400 space-y-2">
+                <p className="font-semibold text-orange-400">⚠️ Serveur non connecté</p>
+                <p>Ouvre un terminal et tape :</p>
+                <code className="block px-3 py-2 bg-gray-800 rounded">cd ~/samy-vision-ai && node samy-bridge.js</code>
+              </div>
+            )}
+            {state.connected && (
+              <p className="text-sm text-green-400">
+                ✅ Connecté à ws://localhost:8081
               </p>
             )}
           </div>

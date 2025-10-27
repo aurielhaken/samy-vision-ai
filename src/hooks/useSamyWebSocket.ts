@@ -16,7 +16,9 @@ interface SamyState {
   error?: string | null;
 }
 
-export const useSamyWebSocket = (url: string = 'ws://localhost:8081') => {
+export const useSamyWebSocket = () => {
+  // Force toujours le bon port, pas de configuration utilisateur
+  const url = 'ws://localhost:8081';
   const [state, setState] = useState<SamyState>({
     emotion: 'calm',
     isSpeaking: false,

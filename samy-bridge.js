@@ -22,10 +22,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 8081;
-const wss = new WebSocketServer({ port: PORT });
+const WEBSOCKET_PORT = 8081;
+const HTTP_PORT = 3001;
+const wss = new WebSocketServer({ port: WEBSOCKET_PORT });
 
-console.log(`🚀 Serveur WebSocket Samy démarré sur ws://localhost:${PORT}`);
+console.log(`🚀 Serveur WebSocket Samy démarré sur ws://localhost:${WEBSOCKET_PORT}`);
 
 // Clients connectés
 const clients = new Set();
@@ -197,9 +198,9 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(3001, () => {
-  console.log('🌐 API HTTP disponible sur http://localhost:3001');
-  console.log('📝 Testez avec: curl -X POST http://localhost:3001/speak -H "Content-Type: application/json" -d \'{"text":"Bonjour Samy"}\'');
+server.listen(HTTP_PORT, () => {
+  console.log('🌐 API HTTP disponible sur http://localhost:' + HTTP_PORT);
+  console.log('📝 Testez avec: curl -X POST http://localhost:' + HTTP_PORT + '/speak -H "Content-Type: application/json" -d \'{"text":"Bonjour Samy"}\'');
 });
 
 // Surveillance d'un fichier pour déclencher say13 (optionnel)

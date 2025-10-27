@@ -30,11 +30,11 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
       setHeadTilt(Math.sin(now * 0.002) * 2);
 
       // Mapping direct de l'amplitude audio -> visème
-      const target: MouthShape = intensity > 0.75
+      const target: MouthShape = intensity > 0.6
         ? 'wide'
-        : intensity > 0.5
+        : intensity > 0.35
         ? 'open'
-        : intensity > 0.25
+        : intensity > 0.15
         ? 'slight'
         : 'closed';
 
@@ -73,40 +73,40 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
 
   // Définition des formes de bouche réalistes
   const getMouthStyle = () => {
-    const baseBottom = 38; // Position de base (en % depuis le haut)
-    
+    const baseBottom = 36; // Position de base (en % depuis le haut) — ajustée pour mieux coller au visage
+
     switch (mouthShape) {
       case 'closed':
         return {
           bottom: `${baseBottom}%`,
-          height: '2%',
-          width: '18%',
-          borderRadius: '50%',
-          opacity: 0.6,
+          height: '1.6%',
+          width: '22%',
+          borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
+          opacity: 0.65,
         };
       case 'slight':
         return {
-          bottom: `${baseBottom - 0.5}%`,
-          height: '3.5%',
-          width: '16%',
-          borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
-          opacity: 0.7,
+          bottom: `${baseBottom - 0.4}%`,
+          height: '4%',
+          width: '24%',
+          borderRadius: '50%',
+          opacity: 0.75,
         };
       case 'open':
         return {
-          bottom: `${baseBottom - 1}%`,
-          height: '5%',
-          width: '15%',
+          bottom: `${baseBottom - 0.8}%`,
+          height: '8%',
+          width: '26%',
           borderRadius: '50%',
-          opacity: 0.8,
+          opacity: 0.85,
         };
       case 'wide':
         return {
-          bottom: `${baseBottom - 1.5}%`,
-          height: '7%',
-          width: '14%',
-          borderRadius: '50%',
-          opacity: 0.85,
+          bottom: `${baseBottom - 1.0}%`,
+          height: '12%',
+          width: '30%',
+          borderRadius: '48%',
+          opacity: 0.9,
         };
     }
   };
@@ -114,12 +114,14 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
   // Définition des dents pour plus de réalisme
   const getTeethStyle = () => {
     if (mouthShape === 'closed') return null;
-    
+
+    const baseBottom = 36.2;
     return {
-      bottom: `${38}%`,
-      height: mouthShape === 'wide' ? '4%' : mouthShape === 'open' ? '2.5%' : '1.5%',
-      width: mouthShape === 'wide' ? '12%' : mouthShape === 'open' ? '13%' : '14%',
-      opacity: mouthShape === 'wide' ? 0.9 : mouthShape === 'open' ? 0.7 : 0.5,
+      bottom: `${baseBottom}%`,
+      height: mouthShape === 'wide' ? '6%' : mouthShape === 'open' ? '4.5%' : '2.5%',
+      width: mouthShape === 'wide' ? '24%' : mouthShape === 'open' ? '22%' : '20%',
+      opacity: mouthShape === 'wide' ? 0.95 : mouthShape === 'open' ? 0.8 : 0.6,
+      borderRadius: '30% 30% 40% 40%'
     };
   };
 
@@ -188,25 +190,7 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
           )}
         </div>
         
-        {/* Speaking indicator */}
-        {isSpeaking && (
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-2 bg-current rounded-full animate-pulse"
-                  style={{
-                    height: `${12 + Math.sin(Date.now() * 0.01 + i) * 6}px`,
-                    color: getEmotionColor(),
-                    animationDelay: `${i * 0.1}s`,
-                    animationDuration: '0.6s'
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Speaking indicator removed for realism */}
         
         {/* Emotion indicator */}
         <div 

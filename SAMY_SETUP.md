@@ -1,8 +1,136 @@
-# 🌟 Samy Vision - Interface 3D en Temps Réel
+# 🌟 Samy Vision - Interface 3D et Terminal say13
 
 ## 🎯 Vue d'ensemble
 
-Samy est maintenant doté d'une **présence visuelle vivante** sous forme de sphère lumineuse 3D qui réagit en temps réel à ses paroles et émotions.
+Samy est maintenant doté d'une **présence visuelle vivante** avec trois modes d'utilisation :
+- 🌐 **Interface Web** avec avatar humain photo-réaliste
+- 🎤 **Terminal CLI** pour utiliser say13 directement
+- 🌉 **Bridge Local** pour synchroniser web + terminal
+
+## 🚀 Installation et Configuration
+
+### Prérequis
+```bash
+# Vérifier Node.js (v18+)
+node --version
+
+# Installer les dépendances
+npm install
+
+# Vérifier say13 (si disponible)
+which say13
+say13 "Test"
+```
+
+---
+
+## 🎮 Modes d'Utilisation
+
+### Mode 1: Interface Web uniquement (par défaut)
+✅ **Aucune configuration requise** - Le bridge Cloud fonctionne automatiquement
+
+```bash
+npm run dev
+# Accéder à http://localhost:5173
+```
+
+⚠️ **Limitation** : Pas d'accès à say13 depuis l'interface
+
+---
+
+### Mode 2: Terminal uniquement (CLI say13)
+🎤 **Utilisez say13 depuis votre terminal sans interface web**
+
+#### Installation CLI
+```bash
+# Rendre le script exécutable (optionnel)
+chmod +x say13-cli.js
+```
+
+#### Utilisation
+```bash
+# Méthode 1: Avec Node
+node say13-cli.js "Bonjour depuis le terminal"
+
+# Méthode 2: Direct (après chmod +x)
+./say13-cli.js "Bonjour depuis le terminal"
+
+# Mode direct (sans bridge)
+node say13-cli.js --direct "Message terminal uniquement"
+
+# Mode bridge (avec animation web si actif)
+node say13-cli.js --bridge "Message visible dans l'interface"
+```
+
+**Fonctionnement** :
+- Par défaut, essaie d'utiliser le bridge (animation web)
+- Si le bridge n'est pas actif, exécute say13 directement
+- Aucune interface web requise !
+
+---
+
+### Mode 3: Web + Terminal synchronisés (Bridge Local)
+🌉 **Synchronisez say13 avec l'avatar web en temps réel**
+
+#### Étape 1: Lancer le bridge local
+```bash
+# Terminal 1
+node samy-bridge.js
+```
+
+Vous devriez voir :
+```
+🚀 Serveur WebSocket Samy démarré sur ws://localhost:8081
+🌐 API HTTP disponible sur http://localhost:3001
+```
+
+#### Étape 2: Lancer l'interface
+```bash
+# Terminal 2
+npm run dev
+```
+
+#### Étape 3: Basculer sur le bridge local
+Dans l'interface web, section "Samy Bridge Selector" :
+1. Cliquez sur **Local**
+2. La page se rechargera automatiquement
+
+#### Étape 4: Utiliser le CLI avec le bridge
+```bash
+# Terminal 3
+node say13-cli.js "L'avatar web bouge maintenant !"
+# ou
+./say13-cli.js --bridge "Animation synchronisée"
+```
+
+✅ **Avantages** :
+- L'avatar web s'anime quand vous utilisez say13 dans le terminal
+- Les analyses d'images déclenchent say13
+- Tous les clients web sont synchronisés
+
+---
+
+## 🔧 Architecture
+
+```
+┌──────────────────┐
+│  Interface Web   │ ← Bridge Cloud (défaut, pas de say13)
+│  (React)         │ ← Bridge Local (optionnel, avec say13)
+└────────┬─────────┘
+         │ WebSocket (ws://localhost:8081)
+         ↓
+┌────────────────────┐      ┌──────────────┐
+│  samy-bridge.js    │─────→│   say13      │
+│  (Node Server)     │      │   (TTS)      │
+└────────┬───────────┘      └──────────────┘
+         ↑ HTTP (:3001)
+┌────────┴───────────┐
+│  say13-cli.js      │ ← Mode auto (bridge ou direct)
+│  (Terminal)        │ ← Mode --direct (sans bridge)
+└────────────────────┘ ← Mode --bridge (nécessite bridge)
+```
+
+---
 
 ## ✨ Fonctionnalités
 
@@ -175,32 +303,52 @@ const count = 1000; // Nombre de particules
 const radius = 3 + Math.random() * 5; // Distance de distribution
 ```
 
+## 🎯 Cas d'usage
+
+| Besoin | Mode recommandé | Commande |
+|--------|----------------|----------|
+| Analyser des images | Mode 1 (Web seul) | `npm run dev` |
+| Utiliser say13 dans le terminal | Mode 2 (CLI) | `./say13-cli.js "texte"` |
+| Voir l'avatar bouger avec say13 | Mode 3 (Bridge) | Bridge + CLI |
+| Scripts automatisés | Mode 2 (CLI direct) | `node say13-cli.js --direct` |
+
+---
+
 ## 🐛 Dépannage
 
-### WebSocket ne se connecte pas
+### say13-cli.js ne fonctionne pas
 ```bash
-# Vérifier que le serveur tourne
+# Vérifier say13
+which say13
+say13 "Test"
+
+# Vérifier Node.js
+node --version  # doit être v18+
+
+# Tester en mode direct
+node say13-cli.js --direct "Test sans bridge"
+```
+
+### Bridge ne se connecte pas
+```bash
+# Vérifier que le bridge tourne
 ps aux | grep samy-bridge
 
-# Relancer le serveur
+# Vérifier les ports
+lsof -i :8081  # WebSocket
+lsof -i :3001  # HTTP
+
+# Relancer le bridge
 node samy-bridge.js
 ```
 
-### say13 ne déclenche pas l'animation
-```bash
-# Tester l'API directement
-curl -X POST http://localhost:3001/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Test"}'
+### L'avatar web ne bouge pas
+1. S'assurer que le **Bridge Local** est sélectionné dans l'interface
+2. Vérifier que `samy-bridge.js` est actif
+3. Ouvrir la console (F12) pour voir les erreurs WebSocket
+4. Recharger la page après avoir basculé sur Local
 
-# Vérifier les logs du serveur
-# Devrait afficher : 🗣️ Samy parle: "Test"
-```
-
-### Sphère ne s'affiche pas
-- Vérifier la console navigateur (F12)
-- Vérifier que WebGL est supporté : `about:support` dans Firefox
-- Essayer un autre navigateur (Chrome recommandé)
+---
 
 ## 🚀 Déploiement Production
 

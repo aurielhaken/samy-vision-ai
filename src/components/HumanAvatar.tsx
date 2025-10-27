@@ -23,34 +23,22 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
       return;
     }
 
-    let lastShapeChange = Date.now();
-    const shapes: MouthShape[] = ['closed', 'slight', 'open', 'wide', 'open', 'slight'];
-    let shapeIndex = 0;
-
     const animate = () => {
       const now = Date.now();
-      const elapsed = now - lastShapeChange;
-      
-      // Changer la forme de bouche basée sur l'intensité (plus rapide = plus intense)
-      const changeSpeed = 150 - (intensity * 50); // 150ms à 50ms selon intensité
-      
-      if (elapsed > changeSpeed) {
-        // Sélection intelligente basée sur l'intensité
-        if (intensity > 0.7) {
-          setMouthShape(shapes[Math.floor(Math.random() * shapes.length)]);
-        } else if (intensity > 0.4) {
-          setMouthShape((['slight', 'open', 'slight'] as MouthShape[])[Math.floor(Math.random() * 3)]);
-        } else {
-          setMouthShape((['closed', 'slight'] as MouthShape[])[Math.floor(Math.random() * 2)]);
-        }
-        
-        // Micro-mouvements de tête
-        setHeadTilt(Math.sin(now * 0.002) * 2);
-        
-        lastShapeChange = now;
-        shapeIndex = (shapeIndex + 1) % shapes.length;
-      }
-      
+
+      // Micro-mouvements de tête subtils pendant la parole
+      setHeadTilt(Math.sin(now * 0.002) * 2);
+
+      // Mapping direct de l'amplitude audio -> visème
+      const target: MouthShape = intensity > 0.75
+        ? 'wide'
+        : intensity > 0.5
+        ? 'open'
+        : intensity > 0.25
+        ? 'slight'
+        : 'closed';
+
+      setMouthShape(prev => (prev === target ? prev : target));
       animationFrame.current = requestAnimationFrame(animate);
     };
 
@@ -167,25 +155,8 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
             }}
           />
           
-          {/* Clignement des yeux */}
-          <div 
-            className="absolute top-[30%] left-[32%] w-[10%] h-[4%] bg-skin-tone"
-            style={{
-              background: 'linear-gradient(to bottom, rgba(255,212,163,0) 0%, rgba(255,212,163,1) 50%, rgba(255,212,163,0) 100%)',
-              transform: `scaleY(${eyeBlink})`,
-              transition: 'transform 0.1s ease-out',
-              transformOrigin: 'center',
-            }}
-          />
-          <div 
-            className="absolute top-[30%] right-[32%] w-[10%] h-[4%]"
-            style={{
-              background: 'linear-gradient(to bottom, rgba(255,212,163,0) 0%, rgba(255,212,163,1) 50%, rgba(255,212,163,0) 100%)',
-              transform: `scaleY(${eyeBlink})`,
-              transition: 'transform 0.1s ease-out',
-              transformOrigin: 'center',
-            }}
-          />
+          {/* Clignement des yeux désactivé pour éviter les artefacts visuels */}
+          {/* Vous pouvez réactiver avec un meilleur masque si nécessaire */}
           
           {/* Dents (pour le réalisme) */}
           {isSpeaking && getTeethStyle() && (

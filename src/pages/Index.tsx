@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Upload, Sparkles, Save, History, Palette, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,7 @@ import MemoryStats from "@/components/MemoryStats";
 import MemoryExport from "@/components/MemoryExport";
 import { type PromptTemplate } from "@/lib/promptTemplates";
 import { useMemoryManager } from "@/hooks/useMemoryManager";
-
+import { useAudioLevel } from "@/hooks/useAudioLevel";
 const Index = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -29,6 +29,8 @@ const Index = () => {
   const [isSamySpeaking, setIsSamySpeaking] = useState(false);
   const { toast } = useToast();
   
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioLevel = useAudioLevel(audioRef);
   // Memory management
   const {
     entries: memories,
@@ -220,14 +222,16 @@ const Index = () => {
           body: { text: fullResult.substring(0, 500) } // Limit to 500 chars for speech
         });
 
-        if (ttsResponse.data?.audioContent) {
-          const audio = new Audio(`data:audio/mpeg;base64,${ttsResponse.data.audioContent}`);
-          audio.onended = () => {
-            setIsSamySpeaking(false);
-            setSamyEmotion('calm');
-          };
-          await audio.play();
-        } else {
+          if (ttsResponse.data?.audioContent && audioRef.current) {
+            const url = `data:audio/mpeg;base64,${ttsResponse.data.audioContent}`;
+            const el = audioRef.current;
+            el.src = url;
+            el.onended = () => {
+              setIsSamySpeaking(false);
+              setSamyEmotion('calm');
+            };
+            try { await el.play(); } catch { /* ignore */ }
+          } else {
           setIsSamySpeaking(false);
           setTimeout(() => setSamyEmotion('calm'), 2000);
         }
@@ -324,12 +328,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle relative">
+      <audio ref={audioRef} className="hidden" />
       {/* Samy Avatar Humain - Floating */}
       <div className="fixed bottom-4 right-4 w-48 h-56 z-50 pointer-events-none">
         <HumanAvatar
           emotion={samyEmotion}
           isSpeaking={isSamySpeaking}
-          intensity={isSamySpeaking ? 0.8 : 0.3}
+          intensity={isSamySpeaking ? Math.min(1, Math.max(0.2, audioLevel)) : 0}
         />
       </div>
       {/* Header */}

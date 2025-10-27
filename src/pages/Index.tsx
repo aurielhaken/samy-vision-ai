@@ -29,6 +29,7 @@ const Index = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<'text' | 'json' | 'vision_ok'>('text');
   const [samyEmotion, setSamyEmotion] = useState<'calm' | 'curious' | 'energetic'>('calm');
+  const [isSamySpeaking, setIsSamySpeaking] = useState(false);
   const { toast } = useToast();
   
   // Memory management
@@ -214,11 +215,35 @@ const Index = () => {
       }
       
       setSamyEmotion('energetic');
+      
+      // Generate speech with ElevenLabs
+      try {
+        setIsSamySpeaking(true);
+        const ttsResponse = await supabase.functions.invoke('text-to-speech', {
+          body: { text: fullResult.substring(0, 500) } // Limit to 500 chars for speech
+        });
+
+        if (ttsResponse.data?.audioContent) {
+          const audio = new Audio(`data:audio/mpeg;base64,${ttsResponse.data.audioContent}`);
+          audio.onended = () => {
+            setIsSamySpeaking(false);
+            setSamyEmotion('calm');
+          };
+          await audio.play();
+        } else {
+          setIsSamySpeaking(false);
+          setTimeout(() => setSamyEmotion('calm'), 2000);
+        }
+      } catch (ttsError) {
+        console.error('TTS error:', ttsError);
+        setIsSamySpeaking(false);
+        setTimeout(() => setSamyEmotion('calm'), 2000);
+      }
+
       toast({
         title: "✨ Analyse terminée",
         description: "L'image a été analysée avec succès",
       });
-      setTimeout(() => setSamyEmotion('calm'), 2000);
     } catch (error) {
       console.error("Erreur d'analyse:", error);
       toast({
@@ -314,8 +339,8 @@ const Index = () => {
           
           <SamyAvatar
             emotion={samyEmotion}
-            isSpeaking={isAnalyzing}
-            intensity={isAnalyzing ? 0.8 : 0.3}
+            isSpeaking={isSamySpeaking}
+            intensity={isSamySpeaking ? 0.8 : 0.3}
           />
           
           <OrbitControls

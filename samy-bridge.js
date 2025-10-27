@@ -12,13 +12,18 @@
  * 3. L'interface web réagit en temps réel
  */
 
-const WebSocket = require('ws');
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import WebSocket, { WebSocketServer } from 'ws';
+import { exec } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = 8081;
-const wss = new WebSocket.Server({ port: PORT });
+const wss = new WebSocketServer({ port: PORT });
 
 console.log(`🚀 Serveur WebSocket Samy démarré sur ws://localhost:${PORT}`);
 
@@ -148,7 +153,7 @@ function say13WithBridge(text) {
 }
 
 // API HTTP simple pour tester sans say13
-const http = require('http');
+// http imported as ESM above
 const server = http.createServer((req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -237,4 +242,4 @@ process.on('SIGINT', () => {
 });
 
 // Export pour utilisation en module
-module.exports = { say13WithBridge, broadcast };
+export { say13WithBridge, broadcast };

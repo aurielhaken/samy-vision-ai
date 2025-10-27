@@ -26,7 +26,7 @@ console.log(`🚀 Serveur WebSocket Samy démarré sur ws://localhost:${PORT}`);
 const clients = new Set();
 
 wss.on('connection', (ws) => {
-  console.log('✅ Nouveau client connecté');
+  console.log('✅ Nouveau client connecté. Total:', clients.size + 1);
   clients.add(ws);
   
   // Envoyer l'état initial
@@ -35,8 +35,31 @@ wss.on('connection', (ws) => {
     emotion: 'calm',
   }));
   
+  // IMPORTANT: Écouter les messages des clients
+  ws.on('message', (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      console.log('📨 Message reçu du client:', message);
+      
+      // Broadcaster le message à tous les clients (y compris l'émetteur)
+      broadcast(message);
+      
+      // Si c'est un message "speak", exécuter say13
+      if (message.type === 'speak' && message.text) {
+        console.log(`🗣️  Exécution say13: "${message.text}"`);
+        exec(`say13 "${message.text}"`, (error) => {
+          if (error) {
+            console.error(`❌ Erreur say13: ${error.message}`);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erreur parsing message client:', error);
+    }
+  });
+  
   ws.on('close', () => {
-    console.log('❌ Client déconnecté');
+    console.log('❌ Client déconnecté. Reste:', clients.size - 1);
     clients.delete(ws);
   });
   

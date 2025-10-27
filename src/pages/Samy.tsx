@@ -10,10 +10,17 @@ import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Wifi, WifiOff, Sparkles, Volume2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import React from 'react';
 
 const Samy = () => {
-  const { state, sendMessage } = useSamyWebSocket();
+  const [wsUrl, setWsUrl] = React.useState<string>(() =>
+    localStorage.getItem('samy-ws-url') || 'ws://localhost:8081'
+  );
+  React.useEffect(() => {
+    localStorage.setItem('samy-ws-url', wsUrl);
+  }, [wsUrl]);
+  const { state, sendMessage } = useSamyWebSocket(wsUrl);
   const [useAvatar, setUseAvatar] = React.useState(true);
   
   const testSpeak = () => {
@@ -121,6 +128,16 @@ const Samy = () => {
                 Avatar 3D
               </Label>
             </div>
+
+            {/* Réglages connexion */}
+            <div className="flex items-center gap-3">
+              <Label htmlFor="ws-url" className="text-gray-400 text-sm">WebSocket</Label>
+              <Input id="ws-url" value={wsUrl} onChange={(e) => setWsUrl(e.target.value)} className="max-w-xs" />
+              <span className="text-xs text-gray-500">Ex: ws://localhost:8081</span>
+            </div>
+            {!state.connected && state.error && (
+              <p className="text-xs text-red-400">{state.error}</p>
+            )}
 
             {/* État actuel */}
             {state.isSpeaking && (

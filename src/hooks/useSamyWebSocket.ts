@@ -13,6 +13,7 @@ interface SamyState {
   intensity: number;
   lastText: string;
   connected: boolean;
+  error?: string | null;
 }
 
 export const useSamyWebSocket = (url: string = 'ws://localhost:8081') => {
@@ -22,6 +23,7 @@ export const useSamyWebSocket = (url: string = 'ws://localhost:8081') => {
     intensity: 0,
     lastText: '',
     connected: false,
+    error: null,
   });
   
   const wsRef = useRef<WebSocket | null>(null);
@@ -32,10 +34,10 @@ export const useSamyWebSocket = (url: string = 'ws://localhost:8081') => {
       console.log('🔌 Connexion à Samy WebSocket:', url);
       const ws = new WebSocket(url);
       
-      ws.onopen = () => {
-        console.log('✅ Connecté à Samy');
-        setState(prev => ({ ...prev, connected: true }));
-      };
+ws.onopen = () => {
+  console.log('✅ Connecté à Samy');
+  setState(prev => ({ ...prev, connected: true, error: null }));
+};
       
       ws.onmessage = (event) => {
         try {
@@ -69,20 +71,20 @@ export const useSamyWebSocket = (url: string = 'ws://localhost:8081') => {
         }
       };
       
-      ws.onerror = (error) => {
-        console.error('❌ Erreur WebSocket:', error);
-      };
+ws.onerror = (error) => {
+  console.error('❌ Erreur WebSocket:', error);
+  setState(prev => ({ ...prev, error: 'Erreur WebSocket. Le serveur n\'est peut-être pas lancé.' }));
+};
       
-      ws.onclose = () => {
-        console.log('🔌 Déconnecté de Samy');
-        setState(prev => ({ ...prev, connected: false }));
-        
-        // Reconnexion automatique après 3 secondes
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Tentative de reconnexion...');
-          connect();
-        }, 3000);
-      };
+ws.onclose = () => {
+  console.log('🔌 Déconnecté de Samy');
+  setState(prev => ({ ...prev, connected: false, error: 'Connexion fermée. Tentative de reconnexion...' }));
+  // Reconnexion automatique après 3 secondes
+  reconnectTimeoutRef.current = setTimeout(() => {
+    console.log('🔄 Tentative de reconnexion...');
+    connect();
+  }, 3000);
+};
       
       wsRef.current = ws;
     } catch (error) {

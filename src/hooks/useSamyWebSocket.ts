@@ -17,8 +17,14 @@ interface SamyState {
 }
 
 export const useSamyWebSocket = () => {
-  // Connexion par défaut au bridge Cloud (aucune config locale requise)
-  const url = 'wss://qmofmorbkihcdfbaoqsh.supabase.co/functions/v1/samy-bridge';
+  // URL Cloud par défaut, avec override via localStorage si présent
+  const defaultUrl = 'wss://qmofmorbkihcdfbaoqsh.supabase.co/functions/v1/samy-bridge';
+  let url = defaultUrl;
+  try {
+    const saved = localStorage.getItem('samy-ws-url');
+    if (saved) url = saved;
+  } catch (_) {}
+
   const [state, setState] = useState<SamyState>({
     emotion: 'calm',
     isSpeaking: false,

@@ -165,15 +165,13 @@ const Samy = () => {
             
             {/* Instructions */}
             {!state.connected && (
-              <div className="text-sm text-gray-400 space-y-2">
-                <p className="font-semibold text-orange-400">⚠️ Serveur non connecté</p>
-                <p>Ouvre un terminal et tape :</p>
-                <code className="block px-3 py-2 bg-gray-800 rounded">cd ~/samy-vision-ai && node samy-bridge.js</code>
-              </div>
+              <p className="text-sm text-gray-400">
+                Connexion au serveur Cloud en cours... Si ça dure, recharge la page.
+              </p>
             )}
             {state.connected && (
               <p className="text-sm text-green-400">
-                ✅ Connecté à ws://localhost:8081
+                ✅ Connecté au bridge Cloud
               </p>
             )}
           </div>

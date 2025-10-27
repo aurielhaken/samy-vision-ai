@@ -17,8 +17,8 @@ interface SamyState {
 }
 
 export const useSamyWebSocket = () => {
-  // Force toujours le bon port, pas de configuration utilisateur
-  const url = 'ws://localhost:8081';
+  // Connexion par défaut au bridge Cloud (aucune config locale requise)
+  const url = 'wss://qmofmorbkihcdfbaoqsh.supabase.co/functions/v1/samy-bridge';
   const [state, setState] = useState<SamyState>({
     emotion: 'calm',
     isSpeaking: false,

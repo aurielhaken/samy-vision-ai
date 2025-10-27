@@ -22,14 +22,8 @@ export const useSamyWebSocket = () => {
   let url = defaultUrl;
   try {
     const saved = localStorage.getItem('samy-ws-url');
-    if (saved && saved.startsWith('wss://')) {
-      url = saved;
-    } else if (saved) {
-      // Nettoie les anciennes URLs locales/non sécurisées
-      localStorage.removeItem('samy-ws-url');
-    }
+    if (saved) url = saved;
   } catch (_) {}
-
 
   const [state, setState] = useState<SamyState>({
     emotion: 'calm',

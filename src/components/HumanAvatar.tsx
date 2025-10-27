@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import avatarImage from '@/assets/samy-avatar.png';
 
 interface HumanAvatarProps {
@@ -7,22 +7,72 @@ interface HumanAvatarProps {
   intensity: number;
 }
 
-export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps) => {
-  const [mouthScale, setMouthScale] = useState(1);
+type MouthShape = 'closed' | 'slight' | 'open' | 'wide';
 
-  // Animation de la bouche pendant la parole
+export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps) => {
+  const [mouthShape, setMouthShape] = useState<MouthShape>('closed');
+  const [headTilt, setHeadTilt] = useState(0);
+  const [eyeBlink, setEyeBlink] = useState(1);
+  const animationFrame = useRef<number>();
+
+  // Animation réaliste de la bouche synchronisée avec la parole
   useEffect(() => {
     if (!isSpeaking) {
-      setMouthScale(1);
+      setMouthShape('closed');
+      setHeadTilt(0);
       return;
     }
 
-    const interval = setInterval(() => {
-      setMouthScale(1 + Math.random() * 0.15);
-    }, 150);
+    let lastShapeChange = Date.now();
+    const shapes: MouthShape[] = ['closed', 'slight', 'open', 'wide', 'open', 'slight'];
+    let shapeIndex = 0;
 
-    return () => clearInterval(interval);
-  }, [isSpeaking]);
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - lastShapeChange;
+      
+      // Changer la forme de bouche basée sur l'intensité (plus rapide = plus intense)
+      const changeSpeed = 150 - (intensity * 50); // 150ms à 50ms selon intensité
+      
+      if (elapsed > changeSpeed) {
+        // Sélection intelligente basée sur l'intensité
+        if (intensity > 0.7) {
+          setMouthShape(shapes[Math.floor(Math.random() * shapes.length)]);
+        } else if (intensity > 0.4) {
+          setMouthShape((['slight', 'open', 'slight'] as MouthShape[])[Math.floor(Math.random() * 3)]);
+        } else {
+          setMouthShape((['closed', 'slight'] as MouthShape[])[Math.floor(Math.random() * 2)]);
+        }
+        
+        // Micro-mouvements de tête
+        setHeadTilt(Math.sin(now * 0.002) * 2);
+        
+        lastShapeChange = now;
+        shapeIndex = (shapeIndex + 1) % shapes.length;
+      }
+      
+      animationFrame.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+    };
+  }, [isSpeaking, intensity]);
+
+  // Clignement des yeux réaliste
+  useEffect(() => {
+    const blink = () => {
+      setEyeBlink(0);
+      setTimeout(() => setEyeBlink(1), 150);
+    };
+
+    const blinkInterval = setInterval(blink, 3000 + Math.random() * 2000);
+    return () => clearInterval(blinkInterval);
+  }, []);
 
   const getEmotionColor = () => {
     switch (emotion) {
@@ -31,6 +81,58 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
       case 'energetic': return '#FF6B35';
       default: return '#4A90E2';
     }
+  };
+
+  // Définition des formes de bouche réalistes
+  const getMouthStyle = () => {
+    const baseBottom = 38; // Position de base (en % depuis le haut)
+    
+    switch (mouthShape) {
+      case 'closed':
+        return {
+          bottom: `${baseBottom}%`,
+          height: '2%',
+          width: '18%',
+          borderRadius: '50%',
+          opacity: 0.6,
+        };
+      case 'slight':
+        return {
+          bottom: `${baseBottom - 0.5}%`,
+          height: '3.5%',
+          width: '16%',
+          borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
+          opacity: 0.7,
+        };
+      case 'open':
+        return {
+          bottom: `${baseBottom - 1}%`,
+          height: '5%',
+          width: '15%',
+          borderRadius: '50%',
+          opacity: 0.8,
+        };
+      case 'wide':
+        return {
+          bottom: `${baseBottom - 1.5}%`,
+          height: '7%',
+          width: '14%',
+          borderRadius: '50%',
+          opacity: 0.85,
+        };
+    }
+  };
+
+  // Définition des dents pour plus de réalisme
+  const getTeethStyle = () => {
+    if (mouthShape === 'closed') return null;
+    
+    return {
+      bottom: `${38}%`,
+      height: mouthShape === 'wide' ? '4%' : mouthShape === 'open' ? '2.5%' : '1.5%',
+      width: mouthShape === 'wide' ? '12%' : mouthShape === 'open' ? '13%' : '14%',
+      opacity: mouthShape === 'wide' ? 0.9 : mouthShape === 'open' ? 0.7 : 0.5,
+    };
   };
 
   return (
@@ -50,8 +152,8 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
           className="relative w-full h-full rounded-full overflow-hidden border-4 shadow-2xl"
           style={{
             borderColor: getEmotionColor(),
-            transform: isSpeaking ? `scale(${1 + intensity * 0.05})` : 'scale(1)',
-            transition: 'transform 0.3s ease-out',
+            transform: `scale(${isSpeaking ? 1 + intensity * 0.05 : 1}) rotate(${headTilt}deg)`,
+            transition: 'border-color 0.3s ease-out',
             boxShadow: `0 0 30px ${getEmotionColor()}60`
           }}
         >
@@ -60,21 +162,56 @@ export const HumanAvatar = ({ emotion, isSpeaking, intensity }: HumanAvatarProps
             alt="Samy Avatar"
             className="w-full h-full object-cover"
             style={{
-              filter: emotion === 'energetic' ? 'brightness(1.1)' : 'brightness(1)'
+              filter: emotion === 'energetic' ? 'brightness(1.1)' : 'brightness(1)',
+              transition: 'filter 0.3s ease-out'
             }}
           />
           
-          {/* Speaking mouth overlay */}
+          {/* Clignement des yeux */}
+          <div 
+            className="absolute top-[30%] left-[32%] w-[10%] h-[4%] bg-skin-tone"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(255,212,163,0) 0%, rgba(255,212,163,1) 50%, rgba(255,212,163,0) 100%)',
+              transform: `scaleY(${eyeBlink})`,
+              transition: 'transform 0.1s ease-out',
+              transformOrigin: 'center',
+            }}
+          />
+          <div 
+            className="absolute top-[30%] right-[32%] w-[10%] h-[4%]"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(255,212,163,0) 0%, rgba(255,212,163,1) 50%, rgba(255,212,163,0) 100%)',
+              transform: `scaleY(${eyeBlink})`,
+              transition: 'transform 0.1s ease-out',
+              transformOrigin: 'center',
+            }}
+          />
+          
+          {/* Dents (pour le réalisme) */}
+          {isSpeaking && getTeethStyle() && (
+            <div 
+              className="absolute left-1/2 transform -translate-x-1/2"
+              style={{
+                ...getTeethStyle(),
+                background: 'linear-gradient(to bottom, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+                borderRadius: '30% 30% 40% 40%',
+                transition: 'all 0.05s ease-out',
+              }}
+            />
+          )}
+          
+          {/* Bouche animée réaliste */}
           {isSpeaking && (
             <div 
-              className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2"
+              className="absolute left-1/2 transform -translate-x-1/2"
               style={{
-                width: '25%',
-                height: '8%',
-                background: 'rgba(0, 0, 0, 0.3)',
-                borderRadius: '50%',
-                transform: `translate(-50%, 0) scaleY(${mouthScale})`,
-                transition: 'transform 0.15s ease-out'
+                ...getMouthStyle(),
+                background: `linear-gradient(to bottom, 
+                  rgba(60, 20, 20, ${getMouthStyle().opacity}) 0%, 
+                  rgba(40, 10, 10, ${getMouthStyle().opacity! * 1.1}) 50%,
+                  rgba(20, 5, 5, ${getMouthStyle().opacity! * 0.9}) 100%)`,
+                transition: 'all 0.05s ease-out',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
               }}
             />
           )}
